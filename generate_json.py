@@ -16,14 +16,7 @@ def carregar_processados():
             try:
                 data = json.load(f)
                 for item in data:
-                    # Suporta formato antigo (item com "url") e novo (item com "parts")
-                    if isinstance(item, dict):
-                        if "url" in item:
-                            processados.add(item["url"])
-                        elif "parts" in item and isinstance(item["parts"], list):
-                            for part in item["parts"]:
-                                if isinstance(part, dict) and "url" in part:
-                                    processados.add(part["url"])
+                    processados.add(item["url"])
             except json.JSONDecodeError:
                 pass  # ignora arquivos quebrados
     return processados
@@ -42,38 +35,16 @@ def gerar_json():
             if not os.path.isdir(autor_path):
                 continue
 
-            for entrada in os.listdir(autor_path):
-                entrada_path = os.path.join(autor_path, entrada)
-
-                # Caso 1: arquivo diretamente dentro do autor (comportamento existente)
-                if os.path.isfile(entrada_path):
-                    url = f"{BASE_URL}/{categoria}/{autor}/{entrada}"
+            for arquivo in os.listdir(autor_path):
+                arquivo_path = os.path.join(autor_path, arquivo)
+                if os.path.isfile(arquivo_path):
+                    url = f"{BASE_URL}/{categoria}/{autor}/{arquivo}"
                     if url not in processados:
                         novos.append({
                             "url": url,
                             "categoria": categoria,
                             "autor": autor
                         })
-
-                # Caso 2: existe uma pasta dentro do autor → agrupar em parts
-                elif os.path.isdir(entrada_path):
-                    parts = []
-                    for nome_arquivo in sorted(os.listdir(entrada_path)):
-                        caminho_arquivo = os.path.join(entrada_path, nome_arquivo)
-                        if os.path.isfile(caminho_arquivo):
-                            part_url = f"{BASE_URL}/{categoria}/{autor}/{entrada}/{nome_arquivo}"
-                            parts.append({"url": part_url})
-
-                    # Apenas adiciona se houver pelo menos um arquivo
-                    if parts:
-                        # Se todos já foram processados, não adiciona
-                        if not all(part["url"] in processados for part in parts):
-                            novos.append({
-                                # categoria passa a ser o nome da subpasta (ex.: "3d")
-                                "categoria": entrada,
-                                "autor": autor,
-                                "parts": parts
-                            })
 
     if novos:
         # Nome do arquivo com data + hora (para sempre gerar um novo)
